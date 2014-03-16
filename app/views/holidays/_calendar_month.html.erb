@@ -1,0 +1,70 @@
+<table class="<%= extra ? 'mini_cal' : 'cal' %>">
+  <thead>
+
+    <% if extra  %>
+      <th colspan="5"><%= Date::MONTHNAMES[month] %></th>
+    <% end %>
+    <% unless extra  %>
+      <tr>
+        <th scope="col" title="<%= l(:label_week) %>" class="week-number"></th>
+        <% 7.times do |i| %>
+          <th scope="col"><%= day_name( (calendar.first_wday+i)%7 ) %></th>
+        <% end %>
+      </tr>
+    <% end %>
+
+  </thead>
+  <tbody>
+    <tr>
+      <% day = calendar.startdt
+         while day <= calendar.enddt %>
+
+      <% if !extra && day.cwday == calendar.first_wday %>
+        <td class='week-number' title="<%= l(:label_week) %>">
+         <%= (day+(11-day.cwday)%7).cweek %>
+        </td>
+      <% end %>
+
+      <td class="<%= day_class(events, day, extra) %> <%= day.month==calendar.month ? 'even' : 'odd' %>
+        <%= ' today' if Date.today == day %> <%= (day.sunday? || day.saturday?)  ? 'weekend' : 'weekday' %>">
+      <p class="day-num"><%= day.day %></p>
+
+      <% unless extra %>
+        <p class="stats" title="<%= day %>">
+          <%= l(:label_days_earned) %>: <span class="days_earned"></span>
+          <br/>
+          <%= l(:label_days_left) %>: <span class="days_left"></span>
+        </p>
+
+        <%= form_tag day_stats_path, :class => 'hidden stats_form' do %>
+          <%= text_field_tag :date, day %>
+          <%= text_field_tag :for_current, day.year == Date.today.year %>
+          <%= text_field_tag :user_id, @user.id %>
+        <% end %>
+
+        <% events.each do |event| %>
+          <% if (event.start_date..event.due_date).include?(day) %>
+            <%= link_to issue_path(event.id) do %>
+              <div class="<%= event.css_classes %> <%= event_class(event) %> tooltip">
+              <%= event.send common_event?(event) ? :subject : :assigned_to  %>
+              <span class="custom_tooltip">
+                <strong><%= l(:label_start_date) %></strong>: <%= format_date(event.start_date) %>&nbsp&nbsp&nbsp
+                <strong><%= l(:label_due_date) %></strong>: <%= format_date(event.due_date) %>
+                <br />
+                <% unless common_event?(event) %>
+                  <strong><%= l(:label_days_taken) %></strong>: <%= event.days_taken %>
+                <% end %>
+              </span>
+              </div>
+            <% end %>
+          <% end %>
+        <% end %>
+      <% end %>
+
+      </td>
+      <%= '</tr><tr>'.html_safe if day.cwday==calendar.last_wday && day!=calendar.enddt %>
+      <% day = day + 1
+         end %>
+    </tr>
+  </tbody>
+</table>

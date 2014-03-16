@@ -1,0 +1,24 @@
+<div class = "holidays_stats">
+  <h3><%= l(:stats_title) %></h3>
+  <%= form_tag holidays_path, :method => :get do %>
+    <%= select_tag 'user', options_for_select(users_collection, :selected => params[:user]), :onchange => "this.form.submit();" %>
+  <% end %>
+</div>
+
+<% [:current_year, :previous_year].each do |year_type| %>
+  <div>
+    <h4><%= year = year_type == :current_year ?  Date.today.year : 1.year.ago.year %></h4>
+
+    <% (instance_variable_get :"@#{year_type}_stats").each_pair do |key, value| %>
+      <% if HolidaysController::VISIBLE.include?(key) %>
+        <%= render 'year_stats', :key => key, :value => value, :year_type => year_type, :year => year %>
+      <% else %>
+        <div class="extra_stats">
+          <%= render 'year_stats', :key => key, :value => value, :year_type => year_type, :year => year  %>
+        </div>
+      <% end %>
+    <% end %>
+    <%= link_to l(:show_more_link), '#', :class => 'more' %>
+    <br/><br/>
+  </div>
+<% end %>

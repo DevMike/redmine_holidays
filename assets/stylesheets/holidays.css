@@ -1,0 +1,92 @@
+.hidden { display: none; }
+.weekend {background-color: #eee;}
+.center-aligned { text-align: center; }
+
+.calendar_form a { margin: 0 3px;}
+
+.holidays_stats { margin-bottom: 10px; }
+.inline { display:inline; }
+select#user { margin-top: 15px; }
+#extra_days { width: 30px; }
+.controller-holidays.action-index .contextual {
+  float: none;
+}
+button.select_date {
+  padding: 2px;
+  vertical-align: middle;
+}
+.holidays.selected { background-color: transparent!important; }
+
+#tabs{ background: none!important; }
+.ui-tabs-nav {
+    background-color: transparent!important;
+    background: none!important;
+    border: none!important;
+    color: #666666!important;
+}
+.ui-tabs-nav .contextual {
+    border: 1px solid #628DB6;
+    margin-top: 32px;
+    min-height: 530px;
+}
+.ui-tabs-nav .calendar_form {
+    text-align: center;
+    display: block;
+}
+.calendar_form div { display: inline-block; }
+.calendar_title {
+    margin: 3px 0;
+    text-align: center;
+}
+
+.mini_cal {
+    display: inline-block;
+    float: left;
+    height: 150px;
+    margin-left: 10px;
+    width: 200px;
+}
+
+.mini_cal p.day-num { width: 20px }
+
+.vacations { background-color: #FFFFDD!important; }
+.holidays { background-color: #E77471!important; }
+.sick_days { background-color: #82CAFA!important; }
+.trainings { background-color: #6CC417!important; }
+.party { background-color: #FFA500!important; }
+div.vacations, div.holidays, div.sick_days, div.trainings, div.party {
+    height: 6px;
+    padding: 1px 0 9px 5px;
+    color: #484848;
+}
+
+.controller-holidays .tooltip:hover .tip {
+  top: 20px;
+  width: auto;
+}
+
+.custom_tooltip {
+    position: fixed; /** depends on how it handles the e.pageX and e.pageY **/
+    display: none; /**let the tooltip be not visible, when startup **/
+    background-color: #FFFFDD !important;
+    border: 1px solid #D7D7D7;
+}
+
+.stats {
+    padding: 1px 0 2px 5px;
+    text-align: justify;
+    display:none;
+}
+
+.extra_stats { display:none; }
+.stats_row{
+    display: inline-block;
+    width: 90px;
+}
+
+.closest_event{
+    float:right;
+    padding: 6px;
+    margin-top: -26px;
+}
+

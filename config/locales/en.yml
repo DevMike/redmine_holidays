@@ -1,0 +1,11 @@
+en:
+  field_days_taken: 'Days taken'
+  filter_submit: 'Select'
+  label_start_date: 'Start Date'
+  label_due_date: 'Due Date'
+  label_days_taken: 'Days Taken'
+  label_days_earned: 'Days Earned'
+  label_days_left: 'Days Left'
+  coming_up: 'Coming up next'
+  stats_title: Statistics
+  show_more_link: '<< Show more >>'

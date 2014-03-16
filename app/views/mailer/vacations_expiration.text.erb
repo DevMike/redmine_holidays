@@ -1,0 +1,3 @@
+<% @users.each do |user| %>
+  <%= user.firstname %> <%= user.lastname %> has <%= user.days_to_be_expired %> that will expire on <%= Date.today %>
+<% end %>

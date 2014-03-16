@@ -1,0 +1,115 @@
+<script type="text/javascript">
+    $(document).ready(function() {
+        tooltipWrapper = $(".tooltip")
+        tooltipWrapper.mousemove(function(e) {
+            $(this).children('.custom_tooltip').css({'top': e.clientY +10, 'left': e.clientX + 10}).css('display', 'block');
+        })
+        tooltipWrapper.mouseout(function() {
+            $(this).children('.custom_tooltip').css('display', 'none');
+        })
+
+        $('.weekday, .weekend').live('click', function(){
+            var form = $(this).children('.stats_form'),
+                container = $(this);
+            $.ajax({
+               type: 'POST',
+               url: form.attr('action'),
+               data: form.serialize(),
+               success: function(data) {
+                 $('.days_earned').html(data['days_earned'])
+                 $('.days_left').html(data['days_left'])
+               }
+            });
+
+            var dialog = $(this).children('.stats').clone().dialog({
+                            modal : true,
+                            resizable : false,
+                            draggable : false,
+                            width : 160,
+                            height : 120,
+                            show : 'blind',
+                            hide : 'explode'
+                        })
+            $('.ui-widget-overlay').live("click", function() {
+                dialog.dialog("close");
+            });
+        });
+        $(".issue").click(function(e) {
+             e.stopPropagation();
+        });
+
+        $('.more').on('click', function(e){
+            e.preventDefault()
+            $(this).siblings('.extra_stats').toggle();
+            $(this).html($(this).html().match(/more/) ? '>> Show less <<' : '<< Show more >>')
+        })
+
+        $('.previous_month').on('click', function(e){
+          e.preventDefault()
+          $('#month option:selected').prev().attr('selected', 'selected');
+          $(this).parents("form").submit();
+        })
+
+        $('.next_month').on('click', function(e){
+          e.preventDefault()
+          $('#month option:selected').next().attr('selected', 'selected');
+          $(this).parents("form").submit();
+        })
+
+        $('#month, #year').on('change', function(){
+          $(this).parents("form").submit();
+        })
+
+        $('.today').on('click', function(e){
+          e.preventDefault()
+          $('#month option[value="<%= Date.today.month %>"]').prop('selected',true).parents("form").submit();
+        })
+
+        $( "#tabs" ).tabs();
+    });
+</script>
+
+<div id="tabs">
+  <ul>
+    <li><a href="#tabs-1">Month events</a></li>
+    <li><a href="#tabs-2">Year holidays</a></li>
+
+    <div class="contextual">
+      <h2 class="calendar_title">Calendar</h2>
+      <%= form_tag holidays_path, :method => :get, :class => 'calendar_form' do %>
+        <%= link_to '<<', '#', :class => 'previous_month' %>
+        <%= select_tag 'month', options_for_select(months_collection, :selected => @month) %>
+        <%= link_to '>>', '#', :class => 'next_month' %>
+        <%= select_tag 'year', options_for_select(years_collection, :selected => @year) %>
+        <%= hidden_field_tag 'user', @user.id if params[:user] && manager_view(@user, @project) %>
+        <%= button_to 'Today', '#', :class => 'today' %>
+      <% end %>
+
+      <div class="closest_event">
+        <strong><%= l(:coming_up) %>: <%= link_to @closest_event.subject, @closest_event if @closest_event %></strong>
+      </div>
+
+      <div id="tabs-1">
+        <%= render 'calendar_month', :calendar => @calendar, :events => @events, :year => @year, :extra => false %>
+      </div>
+
+      <div id="tabs-2">
+        <% 1.upto(12) do |i| %>
+          <%= render 'calendar_month', :calendar => Redmine::Helpers::Calendar.new(Date.civil(@year, i, 1), current_language, :month),
+                     :events => @year_events,
+                     :year => @year,
+                     :extra => true,
+                     :month => i %>
+        <% end %>
+      </div>
+    </div>
+  </ul>
+</div>
+
+<% content_for :sidebar do %>
+	<%=render :partial => "sidebar" %>
+<% end %>
+
+<% content_for :header_tags do %>
+    <%= stylesheet_link_tag 'holidays', :plugin => 'redmine_holidays' %>
+<% end %>
