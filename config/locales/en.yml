@@ -8,4 +8,7 @@ en:
   label_days_left: 'Days Left'
   coming_up: 'Coming up next'
   stats_title: Statistics
-  show_more_link: '<< Show more >>'
+  view_type: View type
+  month_events: Month events
+  year_holidays: Year holidays
+  calendar_title: Calendar

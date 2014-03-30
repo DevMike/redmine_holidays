@@ -7,7 +7,11 @@ module HolidaysHelper
 
   def months_collection
     months = []
-    (1..12).each {|m| months << [Date::MONTHNAMES[m], m]}
+    current_month_name = Date::MONTHNAMES[Date.today.month]
+    (1..12).each {|m|
+      name = Date::MONTHNAMES[m]
+      months << [name, m, {:class => (name==current_month_name ? 'highlighted' : '')}]
+    }
     months
   end
 
@@ -45,7 +49,7 @@ module HolidaysHelper
     end
   end
 
-  def manager_view(user, project)
+  def manager_view?(user, project)
     Member.find_by_user_id_and_project_id(user.id, project.id).roles.map(&:name).include?("Manager") rescue false
   end
 

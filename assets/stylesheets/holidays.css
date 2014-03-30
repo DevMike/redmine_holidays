@@ -24,15 +24,18 @@ button.select_date {
     border: none!important;
     color: #666666!important;
 }
-.ui-tabs-nav .contextual {
-    border: 1px solid #628DB6;
-    margin-top: 32px;
+#calendars .contextual {
     min-height: 530px;
 }
-.ui-tabs-nav .calendar_form {
+#calendars .calendar_form {
     text-align: center;
     display: block;
+    margin-bottom: 10px;
 }
+
+#calendars select { padding: 4px 6px; }
+.project-holidays input[type="submit"] { height: 25px }
+
 .calendar_form div { display: inline-block; }
 .calendar_title {
     margin: 3px 0;
@@ -54,9 +57,9 @@ button.select_date {
 .sick_days { background-color: #82CAFA!important; }
 .trainings { background-color: #6CC417!important; }
 .party { background-color: #FFA500!important; }
-div.vacations, div.holidays, div.sick_days, div.trainings, div.party {
-    height: 6px;
-    padding: 1px 0 9px 5px;
+.cal .issue {
+    padding: 5px 3px !important;
+    border: 1px solid #D7D7D7 !important;
     color: #484848;
 }
 
@@ -69,7 +72,7 @@ div.vacations, div.holidays, div.sick_days, div.trainings, div.party {
     position: fixed; /** depends on how it handles the e.pageX and e.pageY **/
     display: none; /**let the tooltip be not visible, when startup **/
     background-color: #FFFFDD !important;
-    border: 1px solid #D7D7D7;
+    border: 1px solid #D7D7D7 !important;
 }
 
 .stats {
@@ -87,6 +90,10 @@ div.vacations, div.holidays, div.sick_days, div.trainings, div.party {
 .closest_event{
     float:right;
     padding: 6px;
-    margin-top: -26px;
+    margin-top: -36px;
 }
+
+.highlighted { background-color: #FFFFAE; }
+.buttonized { color: white!important; }
+.buttonized:hover { text-decoration: none; }
 

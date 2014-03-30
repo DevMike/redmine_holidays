@@ -1,5 +1,4 @@
 class HolidaysController < ApplicationController
-  VISIBLE = [:"Days Earned", :"Days Taken", :"Days Left"]
   unloadable
   helper :calendars
   include CalendarsHelper
@@ -22,7 +21,7 @@ class HolidaysController < ApplicationController
     @year_events = @rejoicings.where('start_date > ? OR due_date > ?', year_beginning, year_beginning)
 
     @previous_year_stats = @user.year_stats(@project, @holiday_dates, false)
-    @current_year_stats = @user.year_stats(@project, @holiday_dates, true, @previous_year_stats)
+    @current_year_stats = @user.year_stats(@project, @holiday_dates, true)
   end
 
   def update_extra_days
@@ -37,7 +36,7 @@ class HolidaysController < ApplicationController
   end
 
   def day_stats
-    stats = User.find(params[:user_id]).year_stats(@project, @holiday_dates, params[:for_current]=='true', nil, params[:date].to_date, true)
+    stats = User.find(params[:user_id]).year_stats(@project, @holiday_dates, params[:for_current]=='true', params[:date].to_date)
     render :json => { :days_earned => stats[:'Days Earned'], :days_left => stats[:'Days Left'] }
   end
 
@@ -50,7 +49,7 @@ class HolidaysController < ApplicationController
                                                       WHEN '#{User::CATEGORY_VACATIONS}' THEN 3
                                                       WHEN '#{User::CATEGORY_TRAININGS}' THEN 4
                                                       ELSE 5 END")
-    unless params[:user].blank? && @user == User.current && (@user.admin? ||
+    if params[:user].present? && !(@user.admin? ||
         (Member.find_by_user_id_and_project_id(@user.id, @project.id).roles.map(&:name).include?("Manager") rescue false))
       @events = @events.where('issues.assigned_to_id = ? OR issues.category_id = ?', @user.id, @category_holidays_id)
     end
@@ -61,7 +60,7 @@ private
     @project = Project.find_by_name('Holidays')
     @category_holidays_id = IssueCategory.find_by_name(User::CATEGORY_HOLIDAYS).id
 
-    @rejoicings = @project.issues.where(:category_id => IssueCategory.where(name: [User::CATEGORY_PARTY, User::User::CATEGORY_HOLIDAYS]))
+    @rejoicings = @project.issues.where(:category_id => IssueCategory.where(name: [User::CATEGORY_PARTY, User::CATEGORY_HOLIDAYS]))
 
     @holidays_events = @project.issues.joins(:category).where(:category_id => @category_holidays_id)
     @holidays_dates = @holidays_events.map{|i|

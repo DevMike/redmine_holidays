@@ -1,3 +1,3 @@
 <% @users.each do |user| %>
-  <%= user.firstname %> <%= user.lastname %> has <%= user.days_to_be_expired %> that will expire on <%= Date.today %>
+  <%= user.firstname %> <%= user.lastname %> has <%= user.days_to_be_expired %> days left that will expire on <%= User::DATE_WHEN_EXTRA_BURNING %>
 <% end %>

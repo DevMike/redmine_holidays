@@ -16,6 +16,7 @@ module Holidays
           validates_presence_of :assigned_to_id, :if => ->{
             project_holidays? && category.present? && [User::CATEGORY_VACATIONS, User::CATEGORY_SICK_DAYS, User::CATEGORY_TRAININGS].include?(category.name)
           }
+          validate :dates_on_duplication, :if => :project_holidays?
         end
       end
     end
@@ -23,6 +24,17 @@ module Holidays
     module InstanceMethods
       def project_holidays?
         project.present? && project.name == 'Holidays'
+      end
+
+      def dates_on_duplication
+        if project.issues.joins(:category).
+            where(id.present? ? "#{self.class.table_name}.id != #{id}" : '').
+            where(:assigned_to_id => assigned_to_id).
+            where(:category_id => IssueCategory.find_by_name(User::CATEGORY_VACATIONS).id).
+            where('start_date BETWEEN ? AND ? OR due_date BETWEEN ? AND ?', start_date, due_date, start_date, due_date).any?
+          errors.add(:start_date, 'Vacation for this user is already exists in mentioned date range')
+          errors.add(:due_date, 'Vacation for this user is already exists in mentioned date range')
+        end
       end
 
       def days_taken(holiday_dates=nil, from = nil, to=nil)
@@ -35,18 +47,14 @@ module Holidays
 
         sum = 0
         vacation_date = start_date
-        begin
-          until vacation_date > due_date do
-            if (from.blank? || (from.to_date..to.to_date).include?(vacation_date)) && ![0, 6].include?(vacation_date.wday) &&
-                !holiday_dates.any?{|date| (date[:start_date]..date[:due_date]).include?(vacation_date)}
-              sum += 1
-            end
-            vacation_date += 1.day
+        until vacation_date > [due_date, (to ? to.to_date : due_date)].min do
+          if (from.blank? || (from.to_date..to.to_date).include?(vacation_date)) && ![0, 6].include?(vacation_date.wday) &&
+              !holiday_dates.any?{|date| (date[:start_date]..date[:due_date]).include?(vacation_date)}
+            sum += 1
           end
-          sum
-        rescue
-          0
+          vacation_date += 1.day
         end
+        sum
       end
 
       def safe_attribute_with_holidays?(*args)

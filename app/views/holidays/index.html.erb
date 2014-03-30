@@ -35,14 +35,8 @@
             });
         });
         $(".issue").click(function(e) {
-             e.stopPropagation();
+          e.stopPropagation();
         });
-
-        $('.more').on('click', function(e){
-            e.preventDefault()
-            $(this).siblings('.extra_stats').toggle();
-            $(this).html($(this).html().match(/more/) ? '>> Show less <<' : '<< Show more >>')
-        })
 
         $('.previous_month').on('click', function(e){
           e.preventDefault()
@@ -60,40 +54,30 @@
           $(this).parents("form").submit();
         })
 
-        $('.today').on('click', function(e){
+        $('.move_to_today').on('click', function(e){
           e.preventDefault()
           $('#month option[value="<%= Date.today.month %>"]').prop('selected',true).parents("form").submit();
         })
 
-        $( "#tabs" ).tabs();
+        $('.month, .year').on('click', function(e) {
+          e.preventDefault()
+          $('#calendars').find('.calendar').not('.hidden').addClass('hidden')
+          $('#calendar_' + $(this).attr('class')).removeClass('hidden')
+          var title = $('.calendar_title')
+          title.html(title.html().replace(/\(.*\)/, '(' + $(this).html() + ')'))
+        })
     });
 </script>
 
-<div id="tabs">
-  <ul>
-    <li><a href="#tabs-1">Month events</a></li>
-    <li><a href="#tabs-2">Year holidays</a></li>
-
+<div id="calendars">
     <div class="contextual">
-      <h2 class="calendar_title">Calendar</h2>
-      <%= form_tag holidays_path, :method => :get, :class => 'calendar_form' do %>
-        <%= link_to '<<', '#', :class => 'previous_month' %>
-        <%= select_tag 'month', options_for_select(months_collection, :selected => @month) %>
-        <%= link_to '>>', '#', :class => 'next_month' %>
-        <%= select_tag 'year', options_for_select(years_collection, :selected => @year) %>
-        <%= hidden_field_tag 'user', @user.id if params[:user] && manager_view(@user, @project) %>
-        <%= button_to 'Today', '#', :class => 'today' %>
-      <% end %>
+      <h2 class="calendar_title"><%= "#{l(:calendar_title)}(#{l(:month_events)})" %></h2>
 
-      <div class="closest_event">
-        <strong><%= l(:coming_up) %>: <%= link_to @closest_event.subject, @closest_event if @closest_event %></strong>
-      </div>
-
-      <div id="tabs-1">
+      <div id="calendar_month" class="calendar">
         <%= render 'calendar_month', :calendar => @calendar, :events => @events, :year => @year, :extra => false %>
       </div>
 
-      <div id="tabs-2">
+      <div id="calendar_year"  class="calendar hidden">
         <% 1.upto(12) do |i| %>
           <%= render 'calendar_month', :calendar => Redmine::Helpers::Calendar.new(Date.civil(@year, i, 1), current_language, :month),
                      :events => @year_events,
@@ -103,7 +87,6 @@
         <% end %>
       </div>
     </div>
-  </ul>
 </div>
 
 <% content_for :sidebar do %>

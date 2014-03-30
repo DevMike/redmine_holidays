@@ -1,10 +1,10 @@
 <% if key == :"Extra Days" && (User.current.admin? || manager_view?(@user, @project)) %>
   <p class="inline"><span class="stats_row"><%= key %>:</span> <%= form_tag update_extra_days_holidays_path, :method => 'put' do %>
-    <%= text_field_tag 'extra_days', @user.extra_days[year] %>
+    <%= text_field_tag 'extra_days', @user.extra_days[year_type] %>
     <%= hidden_field_tag 'user', @user.id %>
     <%= hidden_field_tag 'year', year_type %>
     <%= submit_tag %>
   <% end %>
-<% elsif !(key =~ /previous|current/) %>
-  <p title="<%= extra_stats(key, year, year_type, :alt) %>"><span class="stats_row"><%= key %>:</span> <%= value %> <%= extra_stats(key, year, year_type) %>
+<% else %>
+  <p><span class="stats_row"><%= key %>:</span> <%= value %>
 <% end %></p>

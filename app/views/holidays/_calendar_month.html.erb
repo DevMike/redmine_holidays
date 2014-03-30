@@ -1,3 +1,18 @@
+<% unless extra %>
+  <%= form_tag holidays_path, :method => :get, :class => 'calendar_form' do %>
+    <%= link_to '<<', '#', :class => 'buttonized previous_month' %>
+    <%= select_tag 'month', options_for_select(months_collection, :selected => @month) %>
+    <%= link_to '>>', '#', :class => 'buttonized next_month' %>
+    <%= select_tag 'year', options_for_select(years_collection, :selected => @year) %>
+    <%= hidden_field_tag 'user', @user.id if params[:user] %>
+    <%= button_to 'Today', '#', :class => 'move_to_today' %>
+  <% end %>
+
+  <div class="closest_event">
+    <strong><%= l(:coming_up) %>: <%= link_to @closest_event.subject, @closest_event if @closest_event %></strong>
+  </div>
+<% end %>
+
 <table class="<%= extra ? 'mini_cal' : 'cal' %>">
   <thead>
 

@@ -1,64 +1,63 @@
 require_dependency 'user'
 
-module DaysEarned
-  def days_earned
-    if @for_current && @on_date < User::DATE_WHEN_EXTRA_BURNING
-      @days_earned_for_current_year + @previous_year_stats[:"Days Left"]
-    else
-      @days_earned_for_current_year + @days_came_from_previous_year
+module Calculation
+  module DaysEarned
+    def days_earned(on_date, for_current, extra_days)
+      year_end_date = for_current ? on_date.at_end_of_year : 1.year.ago.at_end_of_year.to_date
+      year_start_date = for_current ? on_date.at_beginning_of_year : 1.year.ago.at_beginning_of_year
+
+      return 0 if appearance_date.blank? || appearance_date.year > year_end_date.year
+
+      worked_out_days = (for_current ? on_date : year_end_date) - [year_start_date.to_date, appearance_date.to_date].max
+      value = (worked_out_days.to_i.to_f * User::EARNED_DAYS_PER_YEAR / 365).round(1).ceil + extra_days
+      value < 0 ? 0 : value
     end
   end
 
-  def days_earned_for_current_year
-    year_end_date = @for_current ? @on_date.at_end_of_year : 1.year.ago.at_end_of_year.to_date
-    year_start_date = @for_current ? @on_date.at_beginning_of_year : 1.year.ago.at_beginning_of_year
+  module DaysTaken
+    def days_taken_for(to, for_current, category=User::CATEGORY_VACATIONS)
+      date_for_year = for_current ? Date.today : 1.year.ago
+      year_beginning = date_for_year.at_beginning_of_year
+      to = if to
+             to
+           elsif for_current
+             Date.today
+           else
+             date_for_year.at_end_of_year
+           end
 
-    return 0 if created_on.blank? || created_on.year > year_end_date.year
+      value = calculate_days_taken(year_beginning, to, category)
+      for_current && category==User::CATEGORY_VACATIONS ? (value - days_taken_from_previous.to_i) : value
+    end
 
-    worked_out_days = if @for_current
-                        @on_date - year_start_date
-                      else
-                        year_end_date - [year_start_date.to_date, appearance_date.to_date].max
-                      end
-    @days_earned_for_current_year = (worked_out_days.to_i.to_f * User::EARNED_DAYS_PER_YEAR / 365).round(1).ceil
-  end
+    def consider_taken_for_previous(for_current, to, on_date,  year_days_earned)
+      days_taken = days_taken_for(to, for_current)
+      days_left_value = if for_current
+                          @previous_year_stats = year_stats(@project, @holiday_dates, false, on_date)
+                          @previous_year_stats[:"Days Left"]
+                        else
+                          days_left(year_days_earned, days_taken)
+                        end
+      if days_taken_from_previous.blank?
+        taken_before_burning = calculate_days_taken(Date.today.at_beginning_of_year, [User::DATE_WHEN_EXTRA_BURNING, on_date].min)
+        self.days_taken_from_previous = taken_before_burning < days_left_value ? taken_before_burning : days_left_value
+      end
 
-  def days_came_from_previous_year
-    return 0 unless @for_current
-    return @days_taken_for_previous_year if @on_date >= User::DATE_WHEN_EXTRA_BURNING
+      if for_current
+        days_taken - days_taken_from_previous
+      else
+        days_taken + days_taken_from_previous
+      end
+    end
 
-    days_earned_from_previous_year = @previous_year_stats[:"Days Left"]
-    [@days_taken_for_previous_year, days_earned_from_previous_year].max
-  end
-end
-
-module DaysTaken
-  def days_taken_for_previous_year
-    return 0 unless @for_current
-    calculate_days_taken(Date.today.at_beginning_of_year, User::DATE_WHEN_EXTRA_BURNING)
-  end
-
-  def days_taken_for_current_year(category=User::CATEGORY_VACATIONS)
-    date_for_year = @for_current ? Date.today : 1.year.ago
-    year_beginning = date_for_year.at_beginning_of_year
-    to = if @to
-           @to
-         elsif @for_current
-           Date.today
-         else
-           date_for_year.at_end_of_year
-         end
-
-    calculate_days_taken(year_beginning, to, category)
-  end
-
-  def calculate_days_taken(from, to, category=User::CATEGORY_VACATIONS)
-    @project.issues.where('start_date BETWEEN ? AND ? OR due_date BETWEEN ? AND ?', from, to, from, to).
-        joins('LEFT JOIN issue_categories ic ON issues.category_id = ic.id').
-        where('ic.id IS NULL OR ic.name = ?', category).
-        where(:assigned_to_id => id).all.inject(0){|sum, i|
-          sum += i.days_taken(@holiday_dates, from, to)
-        }
+    def calculate_days_taken(from, to, category=User::CATEGORY_VACATIONS)
+      @project.issues.where('start_date BETWEEN ? AND ? OR due_date BETWEEN ? AND ?', from, to, from, to).
+          joins('LEFT JOIN issue_categories ic ON issues.category_id = ic.id').
+          where('ic.id IS NULL OR ic.name = ?', category).
+          where(:assigned_to_id => id).inject(0){|sum, i|
+            sum += i.days_taken(@holiday_dates, from, to)
+          }
+    end
   end
 end
 
@@ -67,69 +66,73 @@ module Holidays
     module UserPatch
       def self.included(base) # :nodoc:
         base.class_eval do
-          base.extend(ClassMethods)
           base.send(:include, InstanceMethods)
 
           unloadable # Send unloadable so it will not be unloaded in development
 
           serialize :extra_days
           after_initialize :set_extra_days, :if => ->(u){ u.extra_days.blank? }
+
+          before_save :remove_spaces_from_names
         end
       end
     end
 
-    module ClassMethods
-      User::EARNED_DAYS_PER_YEAR = Setting['earned_days_per_year'].to_i rescue false || 20
-      User::CATEGORY_HOLIDAYS = 'Holidays'
-      User::CATEGORY_VACATIONS = 'Vacations'
-      User::CATEGORY_SICK_DAYS = 'Sick Days'
-      User::CATEGORY_TRAININGS = 'Trainings'
-      User::CATEGORY_PARTY = 'Party'
-      User::DATE_WHEN_EXTRA_BURNING = Date.parse("#{Settings['date_when_extra_days_burning']}-#{Date.today.year}") rescue Date.today.at_beginning_of_year+2.months
-    end
-
     module InstanceMethods
-      include DaysEarned
-      include DaysTaken
+      include Calculation::DaysEarned
+      include Calculation::DaysTaken
+
+      attr_accessor :days_taken_from_previous
+
+      EARNED_DAYS_PER_YEAR = 20
+      CATEGORY_HOLIDAYS = 'Holidays'
+      CATEGORY_VACATIONS = 'Vacations'
+      CATEGORY_SICK_DAYS = 'Sick Days'
+      CATEGORY_TRAININGS = 'Trainings'
+      CATEGORY_PARTY = 'Party'
+      DATE_WHEN_EXTRA_BURNING = Date.today.at_beginning_of_year+2.months
 
       def set_extra_days
         self.extra_days = {:current_year => 0, :previous_year => 0}
       end
 
-      def year_stats(project, holiday_dates, for_current=true, previous_year_stats=nil, to=nil, by_day=false)
-        @project = project
-        @holiday_dates = holiday_dates
-        @previous_year_stats = by_day && for_current ? year_stats(project, holiday_dates, false, nil, nil) : previous_year_stats
-        @to = to
-        @for_current = for_current
-        @on_date = @to ? @to : Date.today
+      def remove_spaces_from_names
+        self.firstname = firstname.gsub(/\s/, '') if firstname.present?
+        self.lastname = lastname.gsub(/\s/, '') if lastname.present?
+      end
 
-        @extra_days = self.extra_days[@for_current ? :current_year : :previous_year].to_i
-        @days_taken_for_previous_year = days_taken_for_previous_year
-        @days_taken_for_current_year = days_taken_for_current_year
-        @days_came_from_previous_year = days_came_from_previous_year
-        @days_earned_for_current_year = days_earned_for_current_year
-        @days_earned = days_earned
+      def year_stats(project, holiday_dates, for_current=true, to=nil)
+        @project ||= project
+        @holiday_dates ||= holiday_dates
+        on_date = to ? to : Date.today
+
+        year_extra_days = self.extra_days[for_current ? :current_year : :previous_year].to_i
+        year_days_earned = days_earned(on_date, for_current, year_extra_days)
+        year_days_taken = if days_taken_from_previous.nil?
+                            consider_taken_for_previous(for_current, (for_current ? to : nil), on_date, year_days_earned)
+                          else
+                            days_taken_for(to, for_current)
+                          end
+        days_left_value = !for_current && on_date > DATE_WHEN_EXTRA_BURNING ? 0 : days_left(year_days_earned, year_days_taken, (for_current ? @previous_year_stats : nil), for_current, to)
 
         {
-          :"Days Earned" => @days_earned,
-          :days_came_from_previous_year => @days_came_from_previous_year,
-          :days_earned_for_current_year => @days_earned_for_current_year,
-          :"Days Taken" => @days_taken_for_current_year,
-          :"Days Left" => days_left,
-          :"Extra Days" => @extra_days,
-          :"Sick Days" => days_taken_for_current_year(User::CATEGORY_SICK_DAYS),
-          :"Trainings" => days_taken_for_current_year(User::CATEGORY_TRAININGS),
-          :days_taken_for_previous_year => @days_taken_for_previous_year,
-          :days_taken_for_current_year => @days_taken_for_current_year
+          :"Days Earned" => year_days_earned,
+          :"Days Taken" => year_days_taken,
+          :"Days Left" => days_left_value,
+          :"Extra Days" => year_extra_days,
+          :"Sick Days" => days_taken_for(to, for_current, User::CATEGORY_SICK_DAYS),
+          :"Trainings" => days_taken_for(to, for_current, User::CATEGORY_TRAININGS)
         }
       end
 
-      def days_left
-        days_number = @days_earned - @days_taken_for_current_year + @extra_days
-        if @for_current
-          days_from_previous_year = @previous_year_stats[:"Days Taken"] - @previous_year_stats[:"Days Earned"]
-          days_number -= days_from_previous_year if days_from_previous_year > 0
+      def days_left(days_earned, days_taken, previous_year_stats=nil, for_current=nil, to=nil)
+        days_number = days_earned - days_taken
+        if previous_year_stats.present?
+          days_number += if for_current && to && to < DATE_WHEN_EXTRA_BURNING
+                           previous_year_stats[:"Days Left"]
+                         else
+                           0
+                         end
         end
         days_number < 0 ? 0 : days_number
       end
