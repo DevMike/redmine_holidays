@@ -6,9 +6,9 @@ module Calculation
       year_end_date = for_current ? on_date.at_end_of_year : 1.year.ago.at_end_of_year.to_date
       year_start_date = for_current ? on_date.at_beginning_of_year : 1.year.ago.at_beginning_of_year
 
-      return 0 if appearance_date.blank? || appearance_date.year > year_end_date.year
+      return 0 if created_on.to_date.year > year_end_date.year
 
-      worked_out_days = (for_current ? on_date : year_end_date) - [year_start_date.to_date, appearance_date.to_date].max
+      worked_out_days = (for_current ? on_date : year_end_date) - [year_start_date.to_date, created_on.to_date].max
       value = (worked_out_days.to_i.to_f * User::EARNED_DAYS_PER_YEAR / 365).round(1).ceil + extra_days
       value < 0 ? 0 : value
     end
@@ -20,6 +20,7 @@ module Calculation
       year_beginning = date_for_year.at_beginning_of_year
       to = if to
              to
+           elsif for_current
            elsif for_current
              Date.today
            else
